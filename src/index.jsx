@@ -17,7 +17,7 @@ const App = () => {
   return <button type="button" onClick={() => setVisible(true)}>show</button>;
 };
 
-const PlanetInfo = ({ id }) => {
+const usePlanetInfo = (id) => {
   const [name, setName] = useState('');
 
   useEffect(() => {
@@ -36,6 +36,12 @@ const PlanetInfo = ({ id }) => {
     // eslint-disable-next-line no-return-assign
     return () => cancelled = true;
   }, [id]);
+
+  return name;
+};
+
+const PlanetInfo = ({ id }) => {
+  const name = usePlanetInfo(id);
 
   return (
     <div>
