@@ -1,4 +1,4 @@
-import React, { Component, useState, useEffect } from 'react';
+import React, { Component, useState, useEffect, useCallback, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 
 const App = () => {
@@ -17,17 +17,43 @@ const App = () => {
   return <button type="button" onClick={() => setVisible(true)}>show</button>;
 };
 
-const usePlanetInfo = (id) => {
-  const [name, setName] = useState('');
+const getPlanet = async (id) => {
+  const res = await fetch(`https://swapi.dev/api/planets/${id}`);
+  return res.json();
+};
+
+const useRequest = (request) => {
+  const initialState = useMemo(() => ({
+    data: null,
+    isLoading: true,
+    error: null,
+  }), []);
+
+  const [dataState, setDataState] = useState(initialState);
 
   useEffect(() => {
+    setDataState(initialState);
+
     let cancelled = false;
 
     const fetchData = async () => {
-      const res = await fetch(`https://swapi.dev/api/planets/${id}`);
-      const { name: planetName } = await res.json();
-      if (!cancelled) {
-        setName(planetName);
+      try {
+        const data = await request();
+        if (!cancelled) {
+          setDataState({
+            data,
+            isLoading: false,
+            error: null,
+          });
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setDataState({
+            error,
+            isLoading: false,
+            data: null,
+          });
+        }
       }
     };
 
@@ -35,13 +61,27 @@ const usePlanetInfo = (id) => {
 
     // eslint-disable-next-line no-return-assign
     return () => cancelled = true;
-  }, [id]);
+  }, [request, initialState]);
 
-  return name;
+  return dataState;
+};
+
+const usePlanetInfo = (id) => {
+  const request = useCallback(() => getPlanet(id), [id]);
+
+  return useRequest(request);
 };
 
 const PlanetInfo = ({ id }) => {
-  const name = usePlanetInfo(id);
+  const { data, isLoading, error } = usePlanetInfo(id);
+
+  if (error) {
+    return <div>Error!</div>;
+  }
+
+  if (isLoading) {
+    return <div>Loading ...</div>;
+  }
 
   return (
     <div>
@@ -50,7 +90,7 @@ const PlanetInfo = ({ id }) => {
         {' '}
         -
         {' '}
-        {name}
+        {data && data.name}
       </p>
     </div>
   );
